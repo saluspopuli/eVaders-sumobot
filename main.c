@@ -16,7 +16,7 @@ int main()
 	
 	// POLULU SETUP ================================================
 	int length = 1000;
-	int turnSpeed = 100;
+	int speed = 100;
 	
 	const int sensorTimeOut = 2000;
 	unsigned int sensorVals[5];
@@ -24,13 +24,54 @@ int main()
 	pololu_3pi_init(sensorTimeOut);
 	// POLULU SETUP ================================================
 	
+	// DELTA LOOP VARIABLES =============================================
+	int UPS = 60; 
+	
+	double updateInterval = 1000/UPS;
+	double delta = 0;
+	long lastTime = millis();
+	long currentTime;
+	long timer = 0;
+	int updateCount = 0;
+ 
+	int deltaLoopFlag = 1;
+	// =============================================================
+	
+	// ======================= MAIN LOOPING FUNCTION ============================================================================
 	while(1)
 	{
-		clear();
-		lcd_goto_xy(0,0);
-		print_long(line_sensor_check(sensorVals,sensorTimeOut));
-		delay_ms(1000);
+		// PUT PRIORITY FUNCTIONS THAT MUST RUN EVERY CYCLE IN HERE (I.E. BORDER CHECKING) ====================
+		
+		
+		// DELTA TIME LOOP FOR TIME BASED FUNCTIONS (I.E. MOVING FOR 5 SECONDS) ===============================
+		if (deltaLoopFlag == 1){
+			currentTime = millis();
+			delta += (currentTime - lastTime)/updateInterval;
+			timer += (currentTime - lastTime);
+			
+			lastTime = currentTime;
+			
+			if (delta >= 1){
+				
+				// PUT DELTA TIME BASED FUNCTIONS HERE ========================================================
+				
+				lcd_goto_xy(0,1);
+				print("Among Us");
+				
+				// ============================================================================================
+				delta--;
+				updateCount++; 
+			}
+			
+			if (timer >= 1000){
+				lcd_goto_xy(0,0);			//TODO: REMOVE
+				print_long(updateCount);	// ^^^^^^^^^^
+				updateCount = 0;
+				timer = 0;
+			}
+		}
 	}
+	// ====================== MAIN LOOPING FUNCTION ===========================================================================
 }
 
 // ================== FUNCTIONS ===================================
@@ -63,23 +104,37 @@ int line_sensor_check(unsigned int *sensorVals, int sensorTimeOut ){
 
 
 // =================== MOVEMENT FUNCTIONS ===========================
+// speed can only be between 0-255
+//
+// delay is only for millisecond delay after executing the movement, it can
+// just be zero.
 
-void turnLeft(int delay, int turnSpeed){
-	set_motors(-turnSpeed, turnSpeed);
+void forward(int delay, int speed){
+	set_motors(speed, speed);
 	delay_ms(delay);
 }
 
-void turnRight(int delay, int turnSpeed){
-	set_motors(turnSpeed, -turnSpeed);
+void reverse(int delay, int speed){
+	set_motors(-speed, -speed);
 	delay_ms(delay);
 }
 
-void turnLeftBig(int delay, int turnSpeed){
-	set_motors(0, turnSpeed);
+void turnLeft(int delay, int speed){
+	set_motors(-speed, speed);
 	delay_ms(delay);
 }
 
-void turnRightBig(int delay, int turnSpeed){
-	set_motors(turnSpeed,0);
+void turnRight(int delay, int speed){
+	set_motors(speed, -speed);
+	delay_ms(delay);
+}
+
+void turnLeftBig(int delay, int speed){
+	set_motors(0, speed);
+	delay_ms(delay);
+}
+
+void turnRightBig(int delay, int speed){
+	set_motors(speed,0);
 	delay_ms(delay);
 }
