@@ -24,7 +24,7 @@ int main()
 	pololu_3pi_init(sensorTimeOut);
 	// POLULU SETUP ================================================
 	
-	// DELTA LOOP VARIABLES =============================================
+	// DELTA LOOP VARIABLES ========================================
 	int UPS = 60; 
 	
 	double updateInterval = 1000/UPS;
@@ -37,26 +37,51 @@ int main()
 	int deltaLoopFlag = 1;
 	// =============================================================
 	
+	// EVASION VARS ================================================
+	
+	int evasionFlag = 0;
+	int evasionFrame = 0;
+	
+	
+	int testFrames = 0;
+	int maxTestFrames = 100;
+	
+	const int evadePhase1 = 4;
+	const int evadePhase2 = 50;
+	const int evadePhase3 = 200;
+	
+	// =============================================================
+	
 	// ======================= MAIN LOOPING FUNCTION ============================================================================
 	while(1)
 	{
-		// PUT PRIORITY FUNCTIONS THAT MUST RUN EVERY CYCLE IN HERE (I.E. BORDER CHECKING) ====================
+		// PUT PRIORITY FUNCTIONS THAT MUST RUN EVERY CYCLE IN HERE (I.E. BORDER CHECKING) ===================
 		
+		
+		// BORDER CHECKING ====================================================================
 		while (check_border(sensorVals,sensorTimeOut) == 1){
 			int speed = line_sensor_check(sensorVals,sensorTimeOut);
 			
+			clear();
+			lcd_goto_xy(0,0);
+			
 			speed *= 13;
+			print_long(speed);
 			
 			if (speed > 255){
 				speed = 255;
 			}
 			
 			if (speed < 0){
-				turnRight(0, speed);
-			} else {
-				turnLeft(0, speed);
+				turnRight(10, speed);
+			} else if (speed > 0){
+				turnLeft(10, -speed);
+			} else if (speed == 0){
+				reverse(10,150);
 			}
 		}
+		// ====================================================================================
+		
 		
 		
 		// DELTA TIME LOOP FOR TIME BASED FUNCTIONS (I.E. MOVING FOR 5 SECONDS) ===============================
@@ -71,8 +96,38 @@ int main()
 				
 				// PUT DELTA TIME BASED FUNCTIONS HERE ========================================================
 				
+				// EVASION AND RAMMING ===============================================================
 				
-				forward(0,100);
+				if (evasionFlag == 1){
+					
+					if (evasionFrame >= 0 && evasionFrame < evadePhase1){
+						turnLeft(0, 255);
+					} else if (evasionFrame >= evadePhase1 && evasionFrame < evadePhase2){
+						set_motors(255, 130);
+					} else if (evasionFrame >= evadePhase2 && evasionFrame < evadePhase3){
+						turnRight(0, 50);
+					} else if (evasionFrame >= evadePhase3){
+						evasionFlag = 0;
+					}
+					
+					evasionFrame++;
+					
+				} else{
+					evasionFrame = 0;
+					
+					if (testFrames < maxTestFrames){
+						forward(0,100);
+						testFrames++;
+					} else {
+						testFrames = 0;
+						evasionFlag=1;
+					}
+				}
+				
+				// ===================================================================================
+				
+				
+				
 				
 				// ============================================================================================
 				delta--;
@@ -111,7 +166,7 @@ int line_sensor_check(unsigned int *sensorVals, int sensorTimeOut ){
 	}
 	
 	tmpDivisor = sensorTimeOut/10;
-	sum = (sum/tmpDivisor)-1;
+	sum = (sum/tmpDivisor);
 	
 	return sum;
 }
