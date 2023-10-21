@@ -42,6 +42,22 @@ int main()
 	{
 		// PUT PRIORITY FUNCTIONS THAT MUST RUN EVERY CYCLE IN HERE (I.E. BORDER CHECKING) ====================
 		
+		while (check_border(sensorVals,sensorTimeOut) == 1){
+			int speed = line_sensor_check(sensorVals,sensorTimeOut);
+			
+			speed *= 13;
+			
+			if (speed > 255){
+				speed = 255;
+			}
+			
+			if (speed < 0){
+				turnRight(0, speed);
+			} else {
+				turnLeft(0, speed);
+			}
+		}
+		
 		
 		// DELTA TIME LOOP FOR TIME BASED FUNCTIONS (I.E. MOVING FOR 5 SECONDS) ===============================
 		if (deltaLoopFlag == 1){
@@ -55,8 +71,8 @@ int main()
 				
 				// PUT DELTA TIME BASED FUNCTIONS HERE ========================================================
 				
-				lcd_goto_xy(0,1);
-				print("Among Us");
+				
+				forward(0,100);
 				
 				// ============================================================================================
 				delta--;
@@ -64,8 +80,6 @@ int main()
 			}
 			
 			if (timer >= 1000){
-				lcd_goto_xy(0,0);			//TODO: REMOVE
-				print_long(updateCount);	// ^^^^^^^^^^
 				updateCount = 0;
 				timer = 0;
 			}
@@ -100,6 +114,20 @@ int line_sensor_check(unsigned int *sensorVals, int sensorTimeOut ){
 	sum = (sum/tmpDivisor)-1;
 	
 	return sum;
+}
+
+int check_border(unsigned int *sensorVals, int sensorTimeOut){
+	int flag = 0;
+	
+	read_line_sensors(sensorVals, IR_EMITTERS_ON);
+	
+	for (int i = 0; i < 5; i++){
+		if (sensorVals[i] < sensorTimeOut - 200){
+			flag = 1;
+		}
+	}	
+	
+	return flag;	
 }
 
 
