@@ -10,13 +10,20 @@
 
 #include <pololu/3pi.h>
 
+#define TRIG IO_D0
+#define ECHO IO_D1
+
+#define MAX_TIMEOUT 32767
+
+
 int main()
 {
 	play_from_program_space(PSTR(">g32>>c32"));  // Play welcoming notes.
 	
 	// POLULU SETUP ================================================
-	int length = 1000;
-	int speed = 100;
+	set_digital_output(TRIG, LOW);
+	set_digital_input(ECHO, LOW);
+	
 	
 	const int sensorTimeOut = 2000;
 	unsigned int sensorVals[5];
@@ -52,7 +59,23 @@ int main()
 	
 	// =============================================================
 	
+	wait_for_button(BUTTON_A);
+	
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	
+	
 	// ======================= MAIN LOOPING FUNCTION ============================================================================
+	
 	while(1)
 	{
 		// PUT PRIORITY FUNCTIONS THAT MUST RUN EVERY CYCLE IN HERE (I.E. BORDER CHECKING) ===================
@@ -62,14 +85,13 @@ int main()
 		while (check_border(sensorVals,sensorTimeOut) == 1){
 			int speed = line_sensor_check(sensorVals,sensorTimeOut);
 			
-			clear();
-			lcd_goto_xy(0,0);
-			
 			speed *= 13;
-			print_long(speed);
-			
+					
 			if (speed > 255){
 				speed = 255;
+			}
+			if (speed < -255){
+				speed = -255;
 			}
 			
 			if (speed < 0){
@@ -77,7 +99,7 @@ int main()
 			} else if (speed > 0){
 				turnLeft(10, -speed);
 			} else if (speed == 0){
-				reverse(10,150);
+				set_motors(-255, -100);
 			}
 		}
 		// ====================================================================================
@@ -97,7 +119,7 @@ int main()
 				// PUT DELTA TIME BASED FUNCTIONS HERE ========================================================
 				
 				// EVASION AND RAMMING ===============================================================
-				
+				// SET evasionFlag TO 1 TO ACTIVATE THE SEQUENCE.
 				if (evasionFlag == 1){
 					
 					if (evasionFrame >= 0 && evasionFrame < evadePhase1){
@@ -108,20 +130,24 @@ int main()
 						turnRight(0, 50);
 					} else if (evasionFrame >= evadePhase3){
 						evasionFlag = 0;
-					}
+					}	
 					
 					evasionFrame++;
 					
 				} else{
+					// PUT NORMAL SUMOBOT BEHAVIOR HERE ===================================
 					evasionFrame = 0;
 					
-					if (testFrames < maxTestFrames){
-						forward(0,100);
-						testFrames++;
-					} else {
-						testFrames = 0;
-						evasionFlag=1;
-					}
+					forward(0,150);
+					//if (testFrames < maxTestFrames){
+					//	forward(0,100);
+					//	testFrames++;
+					//} else {
+					//	testFrames = 0;
+					//	evasionFlag=1;
+					//}
+					
+					// =====================================================================
 				}
 				
 				// ===================================================================================
@@ -153,7 +179,7 @@ int main()
 int line_sensor_check(unsigned int *sensorVals, int sensorTimeOut ){
 	read_line_sensors(sensorVals, IR_EMITTERS_ON);
 	unsigned int tmp[5];
-	int sum, tmpDivisor;
+	int sum = 0, tmpDivisor;
 	
 	tmp[0] = -sensorVals[0];
 	tmp[1] = -sensorVals[1];
@@ -171,13 +197,16 @@ int line_sensor_check(unsigned int *sensorVals, int sensorTimeOut ){
 	return sum;
 }
 
+
+// CHECK_BORDER
+// Returns integer 1 if any of the sensors detect that there is white light or whatever
 int check_border(unsigned int *sensorVals, int sensorTimeOut){
 	int flag = 0;
 	
 	read_line_sensors(sensorVals, IR_EMITTERS_ON);
 	
 	for (int i = 0; i < 5; i++){
-		if (sensorVals[i] < sensorTimeOut - 200){
+		if (sensorVals[i] < sensorTimeOut - 500){
 			flag = 1;
 		}
 	}	
@@ -185,6 +214,28 @@ int check_border(unsigned int *sensorVals, int sensorTimeOut){
 	return flag;	
 }
 
+// PING_ULTRASOUND
+// 
+int ping_ultrasound(){
+	double timer = 0;
+	int distance = 0;
+	
+	set_digital_output(TRIG, LOW);
+	delay_us(2);
+	set_digital_output(TRIG, HIGH);
+	delay_us(10);
+	set_digital_output(TRIG, LOW);
+	
+	while(!is_digital_input_high(ECHO)){}
+	
+	while(is_digital_input_high(ECHO)){
+		timer++;
+	}
+	
+	distance = timer*0.034/2;
+	
+	return timer;
+}
 
 // =================== MOVEMENT FUNCTIONS ===========================
 // speed can only be between 0-255
