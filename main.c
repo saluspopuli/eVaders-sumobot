@@ -18,6 +18,10 @@
 #define TRUE 1
 #define FALSE 0
 
+#define BUTTON_A_CON 2
+#define BUTTON_B_CON 16
+#define BUTTON_C_CON 32
+
 #define MAX_TIMEOUT 32767
 
 // GLOBAL VARIABLES =========================================================================
@@ -25,20 +29,7 @@
 
 // GENERAL VARS ================================================
 int rammingDistance = 50;
-// =============================================================
-
-
-// DELTA LOOP VARIABLES ========================================
-int UPS = 60;
-
-double updateInterval = 1000/UPS;
-double delta = 0;
-long lastTime = millis();
-long currentTime;
-long timer = 0;
-int updateCount = 0;
-
-int deltaLoopFlag = 1;
+int isRamming = FALSE;
 // =============================================================
 
 
@@ -49,15 +40,13 @@ int evadeDirection = LEFT;
 
 int evasionFlag = 0;
 int evasionFrame = 0;
-	
-int testFrames = 0;
-int maxTestFrames = 100;
 
 const int evadePhase2Radius = 130;
+const int evadePhase3CheckSpeed = 80;
 
-const int evadePhase1 = 9;
-const int evadePhase2 = 60;
-const int evadePhase3 = 160;
+const int evadePhase1 = 10;
+const int evadePhase2 = 80;
+const int evadePhase3 = 200;
 	
 // =============================================================
 	
@@ -66,6 +55,7 @@ const int evadePhase3 = 160;
 // SPIRAL VARS =================================================
 
 int spiralEnableFlag = FALSE;
+int spiralDirection = LEFT;
 
 int spiralFlag = 1;
 int spiralMaxFrame = 2;
@@ -80,7 +70,11 @@ int spiralUpperLimit = 180;
 
 
 // INITIAL BEHAVIOR VARS =======================================
-int behavior = 0;
+int behavior = 1;
+int initSpeed = 255;
+
+int spinDelay = 100;
+int turnDelay = 50;
 // =============================================================
 
 
@@ -101,57 +95,141 @@ int main()
 	
 	pololu_3pi_init(sensorTimeOut);
 	// =============================================================
-	
+
+	// DELTA LOOP VARIABLES ========================================
+	int UPS = 60;
+
+	double updateInterval = 1000/UPS;
+	double delta = 0;
+	long lastTime = millis();
+	long currentTime;
+	long timer = 0;
+	int updateCount = 0;
+
+	int deltaLoopFlag = 1;
+	// =============================================================	
 	
 	
 	// SUMOBOT SETUP ============================================================================================================
 	
-	if(wait_for_button_press(BUTTON_A | BUTTON_B | BUTTON_C) == BUTTON_A {
+	if (wait_for_button_press(BUTTON_A | BUTTON_B | BUTTON_C) == BUTTON_A) {
 		// A - SETUP INIT BEHAVIOR
 		// B - SKIP INIT BEHAVIOR
+		play_from_program_space(PSTR(">f32>>g20"));
+		delay_ms(500);
 		
+		unsigned char buttonPress = wait_for_button_press(BUTTON_A | BUTTON_B | BUTTON_C);
+		play_from_program_space(PSTR(">f32>>g20"));
 		
+		if (buttonPress == BUTTON_A){			// TURN LEFT
+			behavior = 1;
+		} else if (buttonPress == BUTTON_B){	// SPIN
+			behavior = 2;
+		} else if (buttonPress == BUTTON_C){	// TURN RIGHT
+			behavior = 3;
+		} else{
+			behavior = 0;
+		}
+		
+		delay_ms(500);
+		
+	} else{
+		play_from_program_space(PSTR(">g20>>f32"));
+		delay_ms(500);
 	}
+	
+	// SPIRAL CHECK
+	unsigned char buttonPress = wait_for_button_press(BUTTON_A | BUTTON_B | BUTTON_C);
+	play_from_program_space(PSTR(">f32>>g20"));
+	
+	if (buttonPress == BUTTON_A){				// LEFT SPIRAL
+		spiralEnableFlag = TRUE;
+		spiralDirection = LEFT;
+		
+	} else if (buttonPress == BUTTON_B){		// DONT SPIRAL
+		spiralEnableFlag = FALSE;
+			
+	} else if (buttonPress == BUTTON_C){		// RIGHT SPIRAL
+		spiralEnableFlag = TRUE;
+		spiralDirection = RIGHT;
+			
+	}
+	delay_ms(500);
+		
+	// EVASION CHECK
+	
+	buttonPress = wait_for_button_press(BUTTON_A | BUTTON_B | BUTTON_C);
+	play_from_program_space(PSTR(">f32>>g20"));
+	
+	if (buttonPress == BUTTON_A){				// LEFT EVADE
+		evasionEnableFlag = TRUE;
+		evadeDirection = LEFT;
+		
+	} else if (buttonPress == BUTTON_B){		// DONT EVADE
+		evasionEnableFlag = FALSE;
+		
+	} else if (buttonPress == BUTTON_C){		// RIGHT EVADE
+		evasionEnableFlag = TRUE;
+		evadeDirection = RIGHT;
+	}
+	
+	
+	
 	// ==========================================================================================================================
 	
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
+	delay_ms(1000);
+	play_from_program_space(PSTR(">g32"));
 	
 	// INTIAL BEHAVIOR ==========================================================================================================
 	
 	switch (behavior){
 		case 1:
+			turnLeft(turnDelay, initSpeed);
 			break;
 		case 2:
+			turnLeft(spinDelay, initSpeed);
 			break;
 		case 3:
+			turnRight(turnDelay, initSpeed);
 			break;
-			
 		default:
 			break;
 		}
 			
-	
 	// ==========================================================================================================================
 	
 	
-	play_from_program_space(PSTR(">g32"));
-	delay_ms(1000);
-	play_from_program_space(PSTR(">g32"));
-	delay_ms(1000);
-	play_from_program_space(PSTR(">g32"));
-	delay_ms(1000);
-	play_from_program_space(PSTR(">g32"));
-	delay_ms(1000);
-	play_from_program_space(PSTR(">g32"));
-	delay_ms(1000);
-	play_from_program_space(PSTR(">g32"));
-	
-	
+
 	
 	// ======================= MAIN LOOPING FUNCTION ============================================================================
 	
 	while(1)
 	{
 		// PUT PRIORITY FUNCTIONS THAT MUST RUN EVERY CYCLE IN HERE (I.E. BORDER CHECKING) ===================
+		
+		// FUNCTION WHEN OBJECT IS DETECTED ===================================================
+		if (ping_ultrasound() < rammingDistance){
+			if (evasionEnableFlag == TRUE){
+				evasionFlag = TRUE;
+			} else{
+				fullSpeedAhead(rammingDistance);
+			}
+			
+			isRamming = TRUE;
+			
+		} else{
+			isRamming = FALSE;
+		}
+		// ====================================================================================
 		
 		// BORDER CHECKING ====================================================================
 		while (check_border(sensorVals,sensorTimeOut) == 1){
@@ -191,7 +269,7 @@ int main()
 		
 		
 		
-		// DELTA TIME LOOP FOR TIME BASED FUNCTIONS (I.E. MOVING FOR 5 SECONDS) ===============================
+		// DELTA TIME LOOP FOR TIME BASED FUNCTIONS (I.E. MOVING FOR 5 SECONDS) ===============================1
 		if (deltaLoopFlag == 1){
 			currentTime = millis();
 			delta += (currentTime - lastTime)/updateInterval;
@@ -201,37 +279,34 @@ int main()
 			
 			if (delta >= 1){
 				
-				// PUT DELTA TIME BASED FUNCTIONS HERE ========================================================
+				// PUT DELTA TIME BASED FUNCTIONS HERE ========================================================2
 				
-				// EVASION AND RAMMING ===============================================================
-				
-				// SET evasionFlag TO 1 TO ACTIVATE THE SEQUENCE.
-				if (evasionFlag == 1){
-					
+				if (evasionFlag == TRUE){
 					evasionRoutine();
+						
+				} else if(isRamming == TRUE){} 
 					
-				} else{
+				else {
 					
-					// PUT NORMAL SUMOBOT BEHAVIOR HERE ==================================================================================
+					// PUT NORMAL SUMOBOT BEHAVIOR HERE ==================================================================================3
 					
 					evasionFrame = 0;
 					
-					
 					// SPIRALING ===============
-					spiralRoutine(LEFT);
+					if (spiralEnableFlag == TRUE){
+						spiralRoutine(spiralDirection);
+					} else {
+						forward(0, 120);
+					}
 					// =========================
 					
-					// ==================================================================================================================
+					// ==================================================================================================================3
 				}
 				
-				// ===================================================================================
-				
-				
-				
-				
-				// ============================================================================================
+				// ============================================================================================2
 				delta--;
 				updateCount++; 
+				// ============================================================================================1
 			}
 			
 			if (timer >= 1000){
@@ -315,14 +390,7 @@ int ping_ultrasound(){
 
 // EVASIONROUTINE
 // Simple evasion routine whose variables are changed in global since it is frame/time based.
-void evasionRoutine(unsigned int *sensorVals, int sensorTimeOut){
-	
-	if (check_border(sensorVals, sensorTimeOut)){
-		
-		evasionFlag = 0;
-		evasionFrame = 0;
-		
-	}
+void evasionRoutine(){
 	
 	if (evasionFrame >= 0 && evasionFrame < evadePhase1){
 		// EVADE PHASE 1
@@ -343,23 +411,25 @@ void evasionRoutine(unsigned int *sensorVals, int sensorTimeOut){
 	} else if (evasionFrame >= evadePhase2 && evasionFrame < evadePhase3){
 		// EVADE PHASE 3
 		if (evadeDirection == LEFT){
-			turnRight(0, 80);
+			turnRight(0, evadePhase3CheckSpeed);
 		} else if (evadeDirection == RIGHT){
-			turnLeft(0, 80);
+			turnLeft(0, evadePhase3CheckSpeed);
 		}
-	}
 		
-	if (ping_ultrasound() < rammingDistance){
-		fullSpeedAhead(rammingDistance);
-		evasionFrame = evadePhase2;
+		if (ping_ultrasound() < rammingDistance){
+			fullSpeedAhead(rammingDistance);
+			evasionFrame = evadePhase2;
+		}
+			
 	} else if (evasionFrame >= evadePhase3){
+		
 		evasionFlag = 0;
 		evasionFrame = 0;
 	}
+		
+	
 	
 	evasionFrame++;
-	
-	return 0;
 }
 
 // SPIRALROUTINE
@@ -407,6 +477,7 @@ void spiralRoutine (int direction){
 void fullSpeedAhead (int distance){
 	if (ping_ultrasound() < distance){
 		set_motors(255,255);
+		delay_ms(5);
 	}
 }
 
