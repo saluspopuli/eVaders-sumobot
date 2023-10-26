@@ -30,6 +30,7 @@
 // GENERAL VARS ================================================
 int rammingDistance = 80;
 int isRamming = FALSE;
+
 // =============================================================
 
 
@@ -44,9 +45,9 @@ int evasionFrame = 0;
 const int evadePhase2Radius = 150;
 const int evadePhase3CheckSpeed = 80;
 
-const int evadePhase1 = 30;
+const int evadePhase1 = 13;
 const int evadePhase2 = 80;
-const int evadePhase3 = 200;
+const int evadePhase3 = 150;
 	
 // =============================================================
 	
@@ -64,6 +65,10 @@ int spiralSpeed = 50;
 
 int spiralSwitchFrame = 0;
 int spiralMaxSwitchFrame = 240;
+int spiralSwitchFlag = FALSE;
+int spiralSwitchCountdownFlag = FALSE;
+int spiralSwitchLimit = 5;
+int currSpiralSwitchLimit = 0;
 
 int spiralLowerLimit = 60;
 int spiralUpperLimit = 150;
@@ -226,10 +231,13 @@ int main()
 			evasionFlag = 0;
 			evasionFrame = 0;
 			
+			spiralSwitchFlag = TRUE;
+			
 			speed *= 13;
 					
 			if (speed > 255){
 				speed = 255;
+				
 			}
 			if (speed < -255){
 				speed = -255;
@@ -244,15 +252,14 @@ int main()
 			}
 			
 			if (speed < 0){
-				//reverse(20, 255);
 				turnRight(10, speed);
 			} else if (speed > 0){
-				//reverse(20,255);
 				turnLeft(10, -speed);
 			} else if (speed == 0){
 				set_motors(-255, -200);
 			}
 		}
+		
 		// ====================================================================================
 		
 		// FUNCTION WHEN OBJECT IS DETECTED ===================================================
@@ -299,7 +306,7 @@ int main()
 					if (spiralEnableFlag == TRUE){
 						spiralRoutine(spiralDirection);
 					} else {
-						forward(0, 120);
+						forward(0, 160);
 					}
 					// =========================
 					
@@ -379,13 +386,12 @@ int ping_ultrasound(){
 	delay_us(10);
 	set_digital_output(TRIG, LOW);
 	
-	while(!is_digital_input_high(ECHO)){
-	}
+	while(!is_digital_input_high(ECHO)){}
 	
 	while(is_digital_input_high(ECHO)){
 		timer++;	
 	}
-		
+	
 	distance = timer*0.034/2;
 
 	return distance;
@@ -471,6 +477,32 @@ void spiralRoutine (int direction){
 		set_motors(spiralSpeed,200);
 	}
 	
+	if (spiralSwitchFlag == TRUE){
+		spiralSwitchFrame = 0;
+		spiralSwitchFlag = FALSE; 
+		spiralSwitchCountdownFlag = TRUE;
+		currSpiralSwitchLimit++;
+	}
+	
+	if (spiralSwitchCountdownFlag == TRUE){
+		if (spiralSwitchFrame > spiralMaxSwitchFrame){
+			spiralSwitchFrame = 0;
+			spiralSwitchCountdownFlag = FALSE;
+			currSpiralSwitchLimit = 0;
+		} else{
+			spiralSwitchFrame++;
+		}
+	}
+	
+	if (currSpiralSwitchLimit >= spiralSwitchLimit){
+		currSpiralSwitchLimit = FALSE;
+		spiralSwitchCountdownFlag = FALSE;
+		if (spiralDirection == LEFT){
+			spiralDirection = RIGHT;
+		} else if (spiralDirection == RIGHT){
+			spiralDirection = LEFT;
+		}
+	}
 }
 
 // =================== MOVEMENT FUNCTIONS ===========================
