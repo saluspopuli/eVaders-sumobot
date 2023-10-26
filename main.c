@@ -28,7 +28,7 @@
 
 
 // GENERAL VARS ================================================
-int rammingDistance = 50;
+int rammingDistance = 80;
 int isRamming = FALSE;
 // =============================================================
 
@@ -41,10 +41,10 @@ int evadeDirection = LEFT;
 int evasionFlag = 0;
 int evasionFrame = 0;
 
-const int evadePhase2Radius = 130;
+const int evadePhase2Radius = 150;
 const int evadePhase3CheckSpeed = 80;
 
-const int evadePhase1 = 10;
+const int evadePhase1 = 30;
 const int evadePhase2 = 80;
 const int evadePhase3 = 200;
 	
@@ -62,8 +62,11 @@ int spiralMaxFrame = 2;
 int tmpSpiral = 0;
 int spiralSpeed = 50;
 
+int spiralSwitchFrame = 0;
+int spiralMaxSwitchFrame = 240;
+
 int spiralLowerLimit = 60;
-int spiralUpperLimit = 180;
+int spiralUpperLimit = 150;
 	
 // =============================================================
 
@@ -73,8 +76,8 @@ int spiralUpperLimit = 180;
 int behavior = 1;
 int initSpeed = 255;
 
-int spinDelay = 100;
-int turnDelay = 50;
+int spinDelay = 220;
+int turnDelay = 180;
 // =============================================================
 
 
@@ -216,21 +219,6 @@ int main()
 	{
 		// PUT PRIORITY FUNCTIONS THAT MUST RUN EVERY CYCLE IN HERE (I.E. BORDER CHECKING) ===================
 		
-		// FUNCTION WHEN OBJECT IS DETECTED ===================================================
-		if (ping_ultrasound() < rammingDistance){
-			if (evasionEnableFlag == TRUE){
-				evasionFlag = TRUE;
-			} else{
-				fullSpeedAhead(rammingDistance);
-			}
-			
-			isRamming = TRUE;
-			
-		} else{
-			isRamming = FALSE;
-		}
-		// ====================================================================================
-		
 		// BORDER CHECKING ====================================================================
 		while (check_border(sensorVals,sensorTimeOut) == 1){
 			int speed = line_sensor_check(sensorVals,sensorTimeOut);
@@ -256,14 +244,29 @@ int main()
 			}
 			
 			if (speed < 0){
-				reverse(3, 255);
+				//reverse(20, 255);
 				turnRight(10, speed);
 			} else if (speed > 0){
-				reverse(3,255);
+				//reverse(20,255);
 				turnLeft(10, -speed);
 			} else if (speed == 0){
 				set_motors(-255, -200);
 			}
+		}
+		// ====================================================================================
+		
+		// FUNCTION WHEN OBJECT IS DETECTED ===================================================
+		if (ping_ultrasound() < rammingDistance){
+			if (evasionEnableFlag == TRUE){
+				evasionFlag = TRUE;
+				} else{
+				fullSpeedAhead(rammingDistance);
+			}
+			
+			isRamming = TRUE;
+			
+			} else{
+			isRamming = FALSE;
 		}
 		// ====================================================================================
 		
@@ -410,16 +413,17 @@ void evasionRoutine(){
 		
 	} else if (evasionFrame >= evadePhase2 && evasionFrame < evadePhase3){
 		// EVADE PHASE 3
-		if (evadeDirection == LEFT){
-			turnRight(0, evadePhase3CheckSpeed);
-		} else if (evadeDirection == RIGHT){
-			turnLeft(0, evadePhase3CheckSpeed);
-		}
-		
 		if (ping_ultrasound() < rammingDistance){
 			fullSpeedAhead(rammingDistance);
 			evasionFrame = evadePhase2;
+		} else{
+			if (evadeDirection == LEFT){
+				turnRight(0, evadePhase3CheckSpeed);
+			} else if (evadeDirection == RIGHT){
+				turnLeft(0, evadePhase3CheckSpeed);
 		}
+		}
+		
 			
 	} else if (evasionFrame >= evadePhase3){
 		
@@ -466,6 +470,7 @@ void spiralRoutine (int direction){
 	} else if (direction == LEFT){
 		set_motors(spiralSpeed,200);
 	}
+	
 }
 
 // =================== MOVEMENT FUNCTIONS ===========================
