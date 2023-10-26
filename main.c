@@ -10,6 +10,88 @@
 
 #include <pololu/3pi.h>
 
+<<<<<<< Updated upstream
+=======
+#define TRIG IO_D0
+#define ECHO IO_D1
+
+#define RIGHT 1
+#define LEFT 0
+#define TRUE 1
+#define FALSE 0
+
+#define BUTTON_A_CON 2
+#define BUTTON_B_CON 16
+#define BUTTON_C_CON 32
+
+#define MAX_TIMEOUT 32767
+
+// GLOBAL VARIABLES =========================================================================
+
+
+// GENERAL VARS ================================================
+int rammingDistance = 80;
+int isRamming = FALSE;
+
+// =============================================================
+
+
+// EVASION VARS ================================================
+
+int evasionEnableFlag = FALSE;
+int evadeDirection = LEFT;
+
+int evasionFlag = 0;
+int evasionFrame = 0;
+
+const int evadePhase2Radius = 150;
+const int evadePhase3CheckSpeed = 80;
+
+const int evadePhase1 = 13;
+const int evadePhase2 = 80;
+const int evadePhase3 = 150;
+	
+// =============================================================
+	
+	
+	
+// SPIRAL VARS =================================================
+
+int spiralEnableFlag = FALSE;
+int spiralDirection = LEFT;
+
+int spiralFlag = 1;
+int spiralMaxFrame = 2;
+int tmpSpiral = 0;
+int spiralSpeed = 50;
+
+int spiralSwitchFrame = 0;
+int spiralMaxSwitchFrame = 240;
+int spiralSwitchFlag = FALSE;
+int spiralSwitchCountdownFlag = FALSE;
+int spiralSwitchLimit = 5;
+int currSpiralSwitchLimit = 0;
+
+int spiralLowerLimit = 60;
+int spiralUpperLimit = 150;
+	
+// =============================================================
+
+
+
+// INITIAL BEHAVIOR VARS =======================================
+int behavior = 1;
+int initSpeed = 255;
+
+int spinDelay = 220;
+int turnDelay = 180;
+// =============================================================
+
+
+
+// ===========================================================================================
+
+>>>>>>> Stashed changes
 int main()
 {
 	play_from_program_space(PSTR(">g32>>c32"));  // Play welcoming notes.
@@ -65,11 +147,14 @@ int main()
 			clear();
 			lcd_goto_xy(0,0);
 			
+			spiralSwitchFlag = TRUE;
+			
 			speed *= 13;
 			print_long(speed);
 			
 			if (speed > 255){
 				speed = 255;
+				
 			}
 			
 			if (speed < 0){
@@ -80,6 +165,7 @@ int main()
 				reverse(10,150);
 			}
 		}
+		
 		// ====================================================================================
 		
 		
@@ -119,8 +205,12 @@ int main()
 						forward(0,100);
 						testFrames++;
 					} else {
+<<<<<<< Updated upstream
 						testFrames = 0;
 						evasionFlag=1;
+=======
+						forward(0, 160);
+>>>>>>> Stashed changes
 					}
 				}
 				
@@ -185,6 +275,140 @@ int check_border(unsigned int *sensorVals, int sensorTimeOut){
 	return flag;	
 }
 
+<<<<<<< Updated upstream
+=======
+// PING_ULTRASOUND
+// Returns distance value based on ultrasound ping
+int ping_ultrasound(){
+	long timer = 0;
+	int distance = 0;
+
+	
+	set_digital_output(TRIG, LOW);
+	delay_us(2);
+	set_digital_output(TRIG, HIGH);
+	delay_us(10);
+	set_digital_output(TRIG, LOW);
+	
+	while(!is_digital_input_high(ECHO)){}
+	
+	while(is_digital_input_high(ECHO)){
+		timer++;	
+	}
+	
+	distance = timer*0.034/2;
+
+	return distance;
+}
+
+// EVASIONROUTINE
+// Simple evasion routine whose variables are changed in global since it is frame/time based.
+void evasionRoutine(){
+	
+	if (evasionFrame >= 0 && evasionFrame < evadePhase1){
+		// EVADE PHASE 1
+		if (evadeDirection == LEFT){
+			turnLeft(0, 255);
+		} else if (evadeDirection == RIGHT){
+			turnRight(0, 255);
+		}
+		
+	} else if (evasionFrame >= evadePhase1 && evasionFrame < evadePhase2){
+		// EVADE PHASE 2
+		if (evadeDirection == LEFT){
+			set_motors(255, evadePhase2Radius);
+		} else if (evadeDirection == RIGHT){
+			set_motors(evadePhase2Radius, 255);
+		}
+		
+	} else if (evasionFrame >= evadePhase2 && evasionFrame < evadePhase3){
+		// EVADE PHASE 3
+		if (ping_ultrasound() < rammingDistance){
+			fullSpeedAhead(rammingDistance);
+			evasionFrame = evadePhase2;
+		} else{
+			if (evadeDirection == LEFT){
+				turnRight(0, evadePhase3CheckSpeed);
+			} else if (evadeDirection == RIGHT){
+				turnLeft(0, evadePhase3CheckSpeed);
+		}
+		}
+		
+			
+	} else if (evasionFrame >= evadePhase3){
+		
+		evasionFlag = 0;
+		evasionFrame = 0;
+	}
+		
+	
+	
+	evasionFrame++;
+}
+
+// SPIRALROUTINE
+// Goes in a spiral based on direction integer, It is frame/time based
+void spiralRoutine (int direction){
+	if (spiralFlag == 1){
+		if (tmpSpiral >= spiralMaxFrame){
+			tmpSpiral = 0;
+			
+			if (spiralSpeed > spiralUpperLimit){
+				spiralFlag = 0;
+				}	else{
+				spiralSpeed++;
+			}
+		}
+		
+		tmpSpiral++;
+		
+		} else if (spiralFlag == 0){
+		if (tmpSpiral >= spiralMaxFrame){
+			tmpSpiral = 0;
+			
+			if (spiralSpeed < spiralLowerLimit){
+				spiralFlag = 1;
+				}	else {
+				spiralSpeed--;
+			}
+		}
+		tmpSpiral++;
+	}
+	
+	if (direction == RIGHT){
+		set_motors(200,spiralSpeed);
+	} else if (direction == LEFT){
+		set_motors(spiralSpeed,200);
+	}
+	
+	if (spiralSwitchFlag == TRUE){
+		spiralSwitchFrame = 0;
+		spiralSwitchFlag = FALSE; 
+		spiralSwitchCountdownFlag = TRUE;
+		currSpiralSwitchLimit++;
+	}
+	
+	if (spiralSwitchCountdownFlag == TRUE){
+		if (spiralSwitchFrame > spiralMaxSwitchFrame){
+			spiralSwitchFrame = 0;
+			spiralSwitchCountdownFlag = FALSE;
+			currSpiralSwitchLimit = 0;
+		} else{
+			spiralSwitchFrame++;
+		}
+	}
+	
+	if (currSpiralSwitchLimit >= spiralSwitchLimit){
+		currSpiralSwitchLimit = FALSE;
+		spiralSwitchCountdownFlag = FALSE;
+		if (spiralDirection == LEFT){
+			spiralDirection = RIGHT;
+		} else if (spiralDirection == RIGHT){
+			spiralDirection = LEFT;
+		}
+	}
+}
+>>>>>>> Stashed changes
 
 // =================== MOVEMENT FUNCTIONS ===========================
 // speed can only be between 0-255
